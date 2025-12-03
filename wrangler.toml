@@ -1,0 +1,14 @@
+name = "toonstream-sync"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[triggers]
+crons = ["*/1 * * * *"]
+
+[vars]
+TOONSTREAM_HOME_URL = "https://toonstream.one/home/"
+
+[[kv_namespaces]]
+binding = "PROGRESS"
+id = "YOUR_KV_NAMESPACE_ID"
