@@ -1,0 +1,36 @@
+name: toonstream-sync
+type: web
+env:
+  - key: PORT
+    value: "8000"
+  - key: NODE_ENV
+    value: production
+  - key: SUPABASE_URL
+    secret: SUPABASE_URL
+  - key: SUPABASE_SERVICE_ROLE_KEY
+    secret: SUPABASE_SERVICE_ROLE_KEY
+  - key: TMDB_API_KEY
+    secret: TMDB_API_KEY
+  - key: CRON_SCHEDULE
+    value: "*/10 * * * *"
+  - key: USE_PROXY
+    value: "false"
+ports:
+  - port: 8000
+    protocol: http
+health_checks:
+  - type: http
+    path: /
+    port: 8000
+    interval: 30
+    timeout: 10
+    unhealthy_threshold: 3
+    healthy_threshold: 2
+scaling:
+  min: 1
+  max: 1
+instance_types:
+  - type: nano
+build:
+  type: docker
+  dockerfile: Dockerfile

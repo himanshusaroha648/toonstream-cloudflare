@@ -1,17 +1,13 @@
 {
-  "name": "toonstream-cloudflare-sync",
+  "name": "toonstream-koyeb-sync",
   "version": "1.0.0",
-  "description": "Toonstream scraper + Supabase uploader - Works on both Node.js and Cloudflare Workers",
+  "description": "Toonstream scraper + Supabase uploader - Koyeb ready deployment",
   "type": "module",
   "main": "sync-server.js",
   "scripts": {
     "start": "node sync-server.js",
     "sync": "node toonstream-supabase-sync.js",
-    "server": "node sync-server.js",
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "tail": "wrangler tail",
-    "proxy:test": "node -e \"import('./proxy-manager.js').then(async ({ default: ProxyManager }) => { const manager = new ProxyManager(); await manager.initialize(); console.log(manager.getStats()); })\""
+    "server": "node sync-server.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.83.0",
@@ -21,9 +17,6 @@
     "express": "^4.19.2",
     "https-proxy-agent": "^7.0.5",
     "node-cron": "^3.0.3"
-  },
-  "devDependencies": {
-    "wrangler": "^3.0.0"
   },
   "engines": {
     "node": ">=18.0.0"

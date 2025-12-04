@@ -1,182 +1,214 @@
-# Toonstream Supabase Sync
+# Toonstream Koyeb Sync
 
-Toonstream scraper + Supabase uploader - Works on both **Node.js** and **Cloudflare Workers**
+Toonstream scraper + Supabase uploader - **Koyeb ready deployment**
 
 ## Features
 
 - Toonstream website se anime episodes scrape karta hai
 - TMDB se metadata fetch karta hai (poster, rating, description)
 - Supabase database mein store karta hai
-- Har 1 minute pe automatic sync
+- Har 10 minute pe automatic sync (configurable)
 - Proxy support (optional)
+- **Last 20 minutes ke logs dekhne ka endpoint** (`/list`)
 
 ---
 
-## Option 1: Cloudflare Workers pe Deploy
+## Endpoints
 
-### Step 1: Wrangler Install karo
+| Endpoint  | Description                          |
+|-----------|--------------------------------------|
+| `/`       | Health check with uptime and status  |
+| `/sync`   | Manual sync trigger                  |
+| `/status` | Detailed status with proxy info      |
+| `/list`   | **Last 20 minutes ke logs**          |
+
+---
+
+## Koyeb Pe Deploy Kaise Karein
+
+### Method 1: GitHub se Deploy (Recommended)
+
+1. **GitHub pe push karo:**
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git remote add origin https://github.com/YOUR_USERNAME/toonstream-koyeb.git
+   git push -u origin main
+   ```
+
+2. **Koyeb Dashboard pe jao:**
+   - https://app.koyeb.com pe login karo
+   - "Create App" click karo
+   - "GitHub" select karo
+   - Repository select karo: `toonstream-koyeb`
+
+3. **Build settings:**
+   - Builder: **Docker**
+   - Dockerfile path: `Dockerfile`
+   - Port: `8000`
+
+4. **Environment Variables add karo:**
+   ```
+   SUPABASE_URL = your-supabase-url
+   SUPABASE_SERVICE_ROLE_KEY = your-service-role-key
+   TMDB_API_KEY = your-tmdb-api-key
+   PORT = 8000
+   CRON_SCHEDULE = */10 * * * *
+   USE_PROXY = false
+   ```
+
+5. **Deploy click karo!**
+
+---
+
+### Method 2: Koyeb CLI se Deploy
+
+1. **Koyeb CLI install karo:**
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/koyeb/koyeb-cli/master/install.sh | sh
+   ```
+
+2. **Login karo:**
+   ```bash
+   koyeb login
+   ```
+
+3. **Secrets create karo:**
+   ```bash
+   koyeb secrets create SUPABASE_URL --value "https://your-project.supabase.co"
+   koyeb secrets create SUPABASE_SERVICE_ROLE_KEY --value "your-service-role-key"
+   koyeb secrets create TMDB_API_KEY --value "your-tmdb-api-key"
+   ```
+
+4. **Deploy karo:**
+   ```bash
+   koyeb app create toonstream-sync --git github.com/YOUR_USERNAME/toonstream-koyeb --git-branch main --docker
+   ```
+
+---
+
+## /list Endpoint Usage
+
+`/list` endpoint last 20 minutes ke saare logs dikhata hai:
 
 ```bash
-npm install -g wrangler
+curl https://your-app.koyeb.app/list
 ```
 
-### Step 2: Cloudflare Login
-
-```bash
-wrangler login
+**Response example:**
+```json
+{
+  "status": "ok",
+  "timeRange": {
+    "from": "2024-01-01T10:00:00.000Z",
+    "to": "2024-01-01T10:20:00.000Z",
+    "durationMinutes": 20
+  },
+  "summary": {
+    "total": 15,
+    "errors": 0,
+    "warnings": 2,
+    "success": 5,
+    "info": 8
+  },
+  "syncStatus": {
+    "isRunning": false,
+    "lastRunTime": "2024-01-01T10:15:00.000Z",
+    "lastRunSuccess": true,
+    "totalRuns": 3,
+    "successfulRuns": 3,
+    "failedRuns": 0
+  },
+  "logs": [
+    {
+      "timestamp": "2024-01-01T10:15:00.000Z",
+      "type": "success",
+      "message": "Sync run #3 completed successfully",
+      "data": { "runNumber": 3 }
+    }
+  ]
+}
 ```
 
-### Step 3: Project Setup
+---
+
+## Environment Variables
+
+### Required Variables
+
+| Variable                    | Description                    |
+|-----------------------------|--------------------------------|
+| `SUPABASE_URL`              | Supabase project URL           |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key      |
+| `TMDB_API_KEY`              | TMDB API key                   |
+
+### Server Configuration (Optional)
+
+| Variable       | Default           | Description                              |
+|----------------|-------------------|------------------------------------------|
+| `PORT`         | `8000`            | Server port (Koyeb auto-sets this)       |
+| `CRON_SCHEDULE`| `*/10 * * * *`    | Cron expression for auto sync            |
+
+### Toonstream Configuration (Optional)
+
+| Variable                   | Default                              | Description                       |
+|----------------------------|--------------------------------------|-----------------------------------|
+| `TOONSTREAM_HOME_URL`      | `https://toonstream.one/home/`       | Main Toonstream homepage URL      |
+| `TOONSTREAM_HOME_FALLBACKS`| -                                    | Comma-separated fallback URLs     |
+| `TOONSTREAM_AJAX_URL`      | `https://toonstream.one/wp-admin/admin-ajax.php` | AJAX endpoint URL  |
+| `TOONSTREAM_COOKIES`       | -                                    | Cookies for authentication        |
+
+### Scraping Configuration (Optional)
+
+| Variable             | Default   | Description                              |
+|----------------------|-----------|------------------------------------------|
+| `POLL_INTERVAL_MS`   | `60000`   | Polling interval in milliseconds         |
+| `MAX_PARALLEL_SERIES`| `4`       | Maximum parallel series fetch            |
+| `EMBED_MAX_DEPTH`    | `3`       | Maximum depth for resolving video embeds |
+
+### Proxy Configuration (Optional)
+
+| Variable          | Default                        | Description                          |
+|-------------------|--------------------------------|--------------------------------------|
+| `USE_PROXY`       | `false`                        | Enable proxy usage                   |
+| `PROXY_LIST`      | -                              | Comma-separated proxies              |
+| `PROXY_FILE`      | `proxy.txt`                    | Path to proxy file                   |
+| `PROXY_VALIDATE`  | `true`                         | Validate proxies before use          |
+| `PROXY_TEST_URL`  | `https://ipv4.webshare.io/`    | URL used to test proxy connectivity  |
+| `PROXY_MAX_TESTS` | `15`                           | Maximum proxies to test              |
+
+---
+
+## Local Testing
 
 ```bash
-cd toonstream-cloudflare
+# .env file create karo
+cp .env.example .env
+
+# Values fill karo
+nano .env
+
+# Dependencies install karo
 npm install
-```
 
-### Step 4: SECRETS ADD KARO (IMPORTANT!)
-
-```bash
-wrangler secret put SUPABASE_URL
-# Prompt aayega, apna Supabase URL paste karo
-
-wrangler secret put SUPABASE_SERVICE_ROLE_KEY
-# Prompt aayega, apna service role key paste karo
-
-wrangler secret put TMDB_API_KEY
-# Prompt aayega, apna TMDB API key paste karo
-```
-
-### Step 5: Deploy
-
-```bash
-npm run deploy
-```
-
-Ya:
-
-```bash
-wrangler deploy
-```
-
-### Cloudflare Endpoints
-
-| Endpoint | Description |
-|----------|-------------|
-| `/` | Health check |
-| `/sync` | Manual sync trigger |
-| `/status` | Service status |
-
-### Cron Schedule
-
-Worker **har 1 minute** pe automatic sync karega. Change karna ho to `wrangler.toml` mein:
-
-```toml
-[triggers]
-crons = ["*/5 * * * *"]  # Har 5 minute
-```
-
----
-
-## Option 2: Node.js Server (Replit/Render/VPS)
-
-### Scripts
-
-```bash
-npm start       # Start the sync server
-npm run sync    # Run sync once (no server)
-npm run server  # Same as npm start
-```
-
-### Endpoints
-
-| Endpoint | Description |
-|----------|-------------|
-| `/` | Health check with uptime and sync status |
-| `/sync` | Manual sync trigger |
-| `/status` | Detailed status with proxy info |
-
-### Environment Variables
-
-Required:
-- `SUPABASE_URL` - Supabase project URL
-- `SUPABASE_SERVICE_ROLE_KEY` - Supabase service role key  
-- `TMDB_API_KEY` - TMDB API key
-
-Optional:
-- `PORT` - Server port (default: 5000)
-- `CRON_SCHEDULE` - Cron expression (default: "*/1 * * * *")
-- `USE_PROXY` - Enable proxy ("true"/"false")
-- `PROXY_LIST` - Comma-separated proxies
-- `TOONSTREAM_HOME_URL` - Source URL
-
----
-
-## Proxy Support (Node.js only)
-
-```bash
-# Option 1: Environment variable
-USE_PROXY=true
-PROXY_LIST=host1:port1,host2:port2
-
-# Option 2: File
-# Create proxy.txt with one proxy per line
-```
-
-Proxy format: `host:port` or `host:port:username:password`
-
----
-
-## Secrets Kahan Se Milenge?
-
-### Supabase Credentials
-
-1. https://supabase.com/dashboard
-2. Project select karo
-3. **Settings** > **API**
-4. Copy karo:
-   - **URL** = `SUPABASE_URL`
-   - **service_role key** = `SUPABASE_SERVICE_ROLE_KEY`
-
-### TMDB API Key
-
-1. https://www.themoviedb.org/settings/api
-2. Account banao
-3. API key generate karo
-
----
-
-## File Structure
-
-```
-toonstream-cloudflare/
-├── src/
-│   └── index.js              # Cloudflare Workers code
-├── wrangler.toml             # Cloudflare config
-├── sync-server.js            # Node.js Express server
-├── toonstream-supabase-sync.js  # Node.js sync logic
-├── proxy-manager.js          # Proxy rotation (Node.js)
-├── package.json
-└── README.md
+# Server start karo
+npm start
 ```
 
 ---
 
 ## Troubleshooting
 
-### Cloudflare Logs
+### Port Error
+- Koyeb automatically `PORT` environment variable set karta hai
+- Make sure code `process.env.PORT` use kar raha hai
 
-```bash
-wrangler tail
-```
+### Sync Fail Ho Raha Hai
+- `/list` endpoint check karo for detailed logs
+- TMDB API key valid hai ya nahi check karo
+- Supabase credentials verify karo
 
-### Local Testing (Cloudflare)
-
-```bash
-npm run dev
-```
-
-### Secrets Update
-
-```bash
-wrangler secret put SECRET_NAME
-```
+### Logs Nahi Dikh Rahe
+- App restart ke baad logs reset ho jaate hain
+- `/list` sirf last 20 minutes ke logs dikhata hai
